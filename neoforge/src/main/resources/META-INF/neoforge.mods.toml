@@ -13,7 +13,7 @@ config="emi-neoforge.mixins.json"
 modId = "emi"
 version = "${version}"
 displayName = "EMI"
-authors = "Emi"
+authors = "Emi, link-fgfgui (26.1 port), scarletjess"
 description = '''
 A featureful and accessible item and recipe viewer
 '''

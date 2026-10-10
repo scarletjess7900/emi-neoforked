@@ -5,7 +5,9 @@
   "name": "EMI",
   "description": "A featureful and accessible item and recipe viewer",
   "authors": [
-    "Emi"
+    "Emi",
+    "link-fgfgui (26.1 port)",
+    "scarletjess"
   ],
   "contributors": [],
   "contact": {},
