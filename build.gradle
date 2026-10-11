@@ -42,6 +42,12 @@ allprojects {
 	}
 	ext.mavenVersion += "+${rootProject.minecraft_version}"
 	version = "${project.ext.mavenVersion}+${project.name}"
+	// This fork's NeoForge build: <EMI version>-<Minecraft version>-<version of the fork>, jar emi-<that>.jar.
+	// With the Minecraft version in the middle it sorts after the plain EMI version, so "emi 1.1.24 or newer" holds.
+	if (project.name == "neoforge") {
+		ext.mavenVersion = "${rootProject.mod_version}-${rootProject.minecraft_version}-${rootProject.fork_version}"
+		version = project.ext.mavenVersion
+	}
 	group = rootProject.maven_group
 
 	repositories {

@@ -164,6 +164,11 @@ publishing {
 }
 
 void setupRepositories(RepositoryHandler repositories) {
+	if (project.hasProperty("mavendir")) {
+		repositories.maven {
+			url project.mavendir
+		}
+	}
 	if (project.hasProperty("mavenUrl")) {
 		repositories.maven {
 			url project.mavenUrl

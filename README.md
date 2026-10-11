@@ -16,7 +16,7 @@ EMI is a featureful and accessible item and recipe viewer for Minecraft.
 > MIT licensed like the original, see `LICENSE`. Please do not report problems of this build to the original author.
 >
 > Building: JDK 25, `./gradlew :neoforge:build`; the mod is `neoforge/build/libs/emi-<version>.jar`.
-> The Fabric part of the tree is as in the port and was not built or tried here.
+> The Fabric part of the tree is as in the port (its jars keep the port's names); it builds, but was not run here.
 
 ![EMI Interface](https://user-images.githubusercontent.com/14813658/224562247-1588064e-39ef-475a-9108-d7a357af6939.png)
 
