@@ -22,7 +22,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.NeoForgeRenderTypes;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ContainerScreenEvent;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -37,7 +36,8 @@ public class EmiClientNeoForge {
 	
 	@SubscribeEvent
 	public static void clientInit(FMLClientSetupEvent event) {
-		StackBatcher.EXTRA_RENDER_LAYERS.addAll(Arrays.stream(NeoForgeRenderTypes.values()).map(f -> f.get()).toList());
+		// NeoForge 26.3.0.69: NeoForgeRenderTypes is no longer an enum; the one type without a texture argument
+		StackBatcher.EXTRA_RENDER_LAYERS.add(NeoForgeRenderTypes.SOLID_BLOCK_SHEET);
 		EmiClient.init();
 		EmiNetwork.initClient(packet -> ClientPacketDistributor.sendToServer(EmiPacketHandler.wrap(packet)));
 		NeoForge.EVENT_BUS.addListener(EmiClientNeoForge::tagsReloaded);
@@ -63,24 +63,25 @@ public class EmiClientNeoForge {
 	}
 
 	public static void recipesReceived(RecipesReceivedEvent event) {
-		EmiAgnosNeoForge.setReceivedRecipeMap(event.getRecipeMap());
+		EmiAgnosNeoForge.setReceivedRecipes(event.getRecipeMap().values());
 		EmiReloadManager.reloadRecipes();
 		EmiReloadManager.reloadTags();
 	}
 
 	public static void playerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-		EmiAgnosNeoForge.setReceivedRecipeMap(null);
+		EmiAgnosNeoForge.setReceivedRecipes(null);
 	}
 
-	public static void renderScreenForeground(ContainerScreenEvent.Render.Foreground event) {
+	public static void renderScreenForeground(ScreenEvent.Render.Foreground event) {
 		EmiDrawContext context = EmiDrawContext.wrap(event.getGuiGraphics());
-		AbstractContainerScreen<?> screen = event.getContainerScreen();
+		Screen screen = event.getScreen();
+		if (!(screen instanceof AbstractContainerScreen<?>)) {
+			return;
+		}
 		EmiScreenBase base = EmiScreenBase.of(screen);
 		if (base != null) {
-			Minecraft client = Minecraft.getInstance();
 			context.push();
-			context.matrices().translate(-screen.getLeftPos(), -screen.getTopPos());
-			EmiScreenManager.render(context, event.getMouseX(), event.getMouseY(), client.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+			EmiScreenManager.render(context, event.getMouseX(), event.getMouseY(), event.getPartialTick());
 			context.pop();
 		}
 	}

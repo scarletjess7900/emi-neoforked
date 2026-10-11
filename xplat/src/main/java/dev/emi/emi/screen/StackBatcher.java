@@ -14,11 +14,9 @@ import java.util.Optional;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -39,6 +37,7 @@ import dev.emi.emi.EmiPort;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.config.EmiConfig;
 import dev.emi.emi.mixin.accessor.ItemStackRenderStateAccessor;
+import dev.emi.emi.mixin.accessor.LayerRenderStateAccessor;
 import dev.emi.emi.runtime.EmiLog;
 
 public class StackBatcher {
@@ -60,15 +59,26 @@ public class StackBatcher {
 		}
 	}
 
+	/**
+	 * Minimal stand-in for the removed {@code MultiBufferSource} interface, used only
+	 * to keep the batched rendering API surface compiling. The default batched
+	 * renderer is disabled ({@link EmiConfig#useBatchedRenderer} defaults to
+	 * {@code false}) and {@link ItemEmiStack#renderForBatch} marks stacks as
+	 * unbatchable, so no geometry actually flows through this interface.
+	 */
+	public interface EmiBufferSource {
+		VertexConsumer getBuffer(RenderType renderType);
+	}
+
 	public interface Batchable {
 		boolean isSideLit();
 		boolean isUnbatchable();
 		void setUnbatchable();
-		void renderForBatch(MultiBufferSource vcp, GuiGraphicsExtractor draw, int x, int y, int z, float delta);
+		void renderForBatch(EmiBufferSource vcp, GuiGraphicsExtractor draw, int x, int y, int z, float delta);
 	}
 
 	private final BatcherVertexConsumerProvider imm;
-	private final MultiBufferSource unlitFacade;
+	private final EmiBufferSource unlitFacade;
 	private final Map<RenderType, MeshData> buffers = new LinkedHashMap<>();
 	private final Set<TextureAtlasSprite> spritesToUpdate = Sets.newHashSet();
 	private boolean populated = false;
@@ -85,10 +95,8 @@ public class StackBatcher {
 
 	public StackBatcher() {
 		Map<RenderType, ByteBufferBuilder> buffers = new HashMap<>();
-		assign(buffers, Sheets.cutoutBlockSheet());
+		assign(buffers, Sheets.cutoutBlockItemSheet());
 		assign(buffers, Sheets.translucentItemSheet());
-		assign(buffers, RenderTypes.glint());
-		assign(buffers, RenderTypes.entityGlint());
 		for (RenderType layer : EXTRA_RENDER_LAYERS) {
 			assign(buffers, layer);
 		}
@@ -97,7 +105,7 @@ public class StackBatcher {
 	}
 
 	private void assign(Map<RenderType, ByteBufferBuilder> buffers, RenderType layer) {
-		buffers.put(layer, new ByteBufferBuilder(layer.bufferSize()));
+		buffers.put(layer, new ByteBufferBuilder(RenderType.BIG_BUFFER_SIZE));
 	}
 
 	public boolean isPopulated() {
@@ -148,7 +156,7 @@ public class StackBatcher {
 						client.getItemModelResolver().updateForTopItem(renderState, is, ItemDisplayContext.GUI, client.level, null, 0);
 						if (((ItemStackRenderStateAccessor) renderState).emi$getActiveLayerCount() > 0) {
 							ItemStackRenderState.LayerRenderState layer = ((ItemStackRenderStateAccessor) renderState).emi$getLayers()[0];
-							List<BakedQuad> quads = layer.prepareQuadList();
+							List<BakedQuad> quads = ((LayerRenderStateAccessor) layer).emi$getQuads().all();
 							for (BakedQuad quad : quads) {
 								if (quad != null) {
 									spritesToUpdate.add(quad.materialInfo().sprite());
@@ -185,16 +193,19 @@ public class StackBatcher {
 			bake();
 			populated = true;
 		}
-		Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+		Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_3D);
 		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
 		modelViewStack.pushMatrix();
 		modelViewStack.translate(x, y, 0);
-		for (Map.Entry<RenderType, MeshData> en : buffers.entrySet()) {
-			en.getKey().draw(en.getValue());
-		}
+		// MeshData drawing via RenderType.draw was removed in 26.2; the new API
+		// requires StagedVertexBuffer. The batched renderer is disabled by
+		// default and ItemEmiStack marks itself unbatchable, so buffers stays
+		// empty in practice. Close any stale mesh data without drawing.
+		buffers.values().forEach(MeshData::close);
+		buffers.clear();
 		modelViewStack.popMatrix();
 	}
-	
+
 	private void bake() {
 		imm.drawCurrentLayer();
 		buffers.values().forEach(MeshData::close);
@@ -250,7 +261,7 @@ public class StackBatcher {
 		}
 	}
 
-	private static class BatcherVertexConsumerProvider implements MultiBufferSource {
+	private static class BatcherVertexConsumerProvider implements EmiBufferSource {
 		protected final ByteBufferBuilder fallbackBuffer;
 		protected final Map<RenderType, ByteBufferBuilder> layerBuffers;
 		protected final Map<RenderType, BufferBuilder> pending = new HashMap<>();
@@ -268,12 +279,12 @@ public class StackBatcher {
 			if (bufferBuilder == null) {
 				ByteBufferBuilder allocator = this.layerBuffers.get(renderLayer);
 				if (allocator != null) {
-					bufferBuilder = new BufferBuilder(allocator, renderLayer.mode(), renderLayer.format());
+					bufferBuilder = new BufferBuilder(allocator, renderLayer.primitiveTopology(), renderLayer.format());
 				} else {
 					if (this.currentLayer != null) {
 						this.draw(this.currentLayer);
 					}
-					bufferBuilder = new BufferBuilder(this.fallbackBuffer, renderLayer.mode(), renderLayer.format());
+					bufferBuilder = new BufferBuilder(this.fallbackBuffer, renderLayer.primitiveTopology(), renderLayer.format());
 					this.currentLayer = renderLayer;
 				}
 
@@ -310,7 +321,9 @@ public class StackBatcher {
 			MeshData buffer = builder.build();
 			if (buffer != null) {
 				buffer.sortQuads(bufferAllocator, VertexSorting.ORTHOGRAPHIC_Z);
-				layer.draw(buffer);
+				// RenderType.draw(MeshData) was removed in 26.2. The batched
+				// renderer is disabled by default, so we just close the mesh.
+				buffer.close();
 			}
 			if (isSameAsCurrentLayer) {
 				this.currentLayer = null;
@@ -322,11 +335,11 @@ public class StackBatcher {
 		}
 	}
 
-	private static class UnlitFacade implements MultiBufferSource {
-		private final MultiBufferSource delegate;
+	private static class UnlitFacade implements EmiBufferSource {
+		private final EmiBufferSource delegate;
 		private final IdentityHashMap<VertexConsumer, VertexConsumer> cache = new IdentityHashMap<>();
 
-		public UnlitFacade(MultiBufferSource delegate) {
+		public UnlitFacade(EmiBufferSource delegate) {
 			this.delegate = delegate;
 		}
 
@@ -369,6 +382,12 @@ public class StackBatcher {
 			@Override
 			public VertexConsumer setUv2(int u, int v) {
 				delegate.setUv2(u, v);
+				return this;
+			}
+
+			@Override
+			public VertexConsumer setUv3(float u, float v) {
+				delegate.setUv3(u, v);
 				return this;
 			}
 

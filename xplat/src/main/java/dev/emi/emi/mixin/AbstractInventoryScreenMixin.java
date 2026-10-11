@@ -107,7 +107,7 @@ public abstract class AbstractInventoryScreenMixin {
 				List<MobEffectInstance> single = List.of(inst);
 				this.extractBackground(context.raw(), this.screen.getFont(), this.getEffectName(inst), MobEffectUtil.formatDuration(inst, 1.0f, minecraft.level.tickRateManager().tickrate()), x, y, inst.isAmbient(), ew);
 				this.extractText(context.raw(), this.getEffectName(inst), MobEffectUtil.formatDuration(inst, 1.0f, minecraft.level.tickRateManager().tickrate()), this.screen.getFont(), x, y, ew, 33, mouseX, mouseY);
-				context.raw().blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, net.minecraft.client.gui.Gui.getMobEffectSprite(inst.getEffect()), x + 7, y + 7, 18, 18);
+				context.raw().blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, net.minecraft.client.gui.Hud.getMobEffectSprite(inst.getEffect()), x + 7, y + 7, 18, 18);
 				if (mouseX >= x && mouseX < x + ew && mouseY >= y && mouseY < y + 32) {
 					hovered = inst;
 				}
@@ -122,7 +122,7 @@ public abstract class AbstractInventoryScreenMixin {
 					.map(Component::getVisualOrderText)
 					.map(ClientTooltipComponent::create)
 					.toList();
-			context.deferTooltip(() -> context.raw().tooltip(minecraft.font, components, mouseX, Math.max(mouseY, 16), DefaultTooltipPositioner.INSTANCE, null));
+			context.deferTooltip(() -> context.raw().tooltip(minecraft.font, components, mouseX, Math.max(mouseY, 16), DefaultTooltipPositioner.INSTANCE, null, false));
 		}
 	}
 

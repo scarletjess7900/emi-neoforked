@@ -11,6 +11,7 @@ import mezz.jei.api.gui.ingredient.IRecipeSlotDrawablesView;
 import mezz.jei.api.gui.inputs.IJeiGuiEventListener;
 import mezz.jei.api.gui.inputs.IJeiInputHandler;
 import mezz.jei.api.gui.placement.IPlaceable;
+import mezz.jei.api.gui.widgets.IDrawableWidget;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.gui.widgets.IRecipeWidget;
 import mezz.jei.api.gui.widgets.IScrollBoxWidget;
@@ -24,7 +25,6 @@ public class JemiRecipeExtrasBuilder implements IRecipeExtrasBuilder {
 	public List<IJeiInputHandler> inputHandlers = Lists.newArrayList();
 	public List<IJeiGuiEventListener> eventListeners = Lists.newArrayList();
 	public List<JemiWidgetBuilder> widgets = Lists.newArrayList();
-	public List<JemiScrollGridWidget> scrollGrids = Lists.newArrayList();
 
 	public JemiRecipeExtrasBuilder(IRecipeSlotDrawablesView slots) {
 		this.slots = slots;
@@ -47,6 +47,22 @@ public class JemiRecipeExtrasBuilder implements IRecipeExtrasBuilder {
 				drawable.draw(raw);
 			});
 		}));
+	}
+
+	@Override
+	public IDrawableWidget addDrawableWidget(IDrawable drawable) {
+		return addEmi(new JemiWidgetBuilder(drawable.getWidth(), drawable.getHeight(), (self, holder) -> {
+			holder.addDrawable(self.x, self.y, drawable.getWidth(), drawable.getHeight(), (raw, mouseX, mouseY, delta) -> {
+				drawable.draw(raw);
+			});
+		}));
+	}
+
+	@Override
+	public IDrawableWidget addTooltipArea(int xPos, int yPos, int width, int height) {
+		// EMI's jemi widgets have no tooltip support, but the area still needs bounds
+		return addEmi(new JemiWidgetBuilder(width, height, (self, holder) -> {
+		})).setPosition(xPos, yPos);
 	}
 
 	@Override
@@ -82,13 +98,16 @@ public class JemiRecipeExtrasBuilder implements IRecipeExtrasBuilder {
 
 	@Override
 	public IScrollGridWidget addScrollGridWidget(List<IRecipeSlotDrawable> slots, int columns, int visibleRows) {
-		JemiScrollGridWidget grid = new JemiScrollGridWidget(slots, 0, 0, columns, visibleRows);
-		scrollGrids.add(grid);
-		return grid;
+		return new JemiScrollGridWidget(slots, 0, 0, columns, visibleRows);
 	}
 
 	@Override
 	public IPlaceable<?> addRecipeArrow() {
+		return addEmiTexture(EmiTexture.EMPTY_ARROW);
+	}
+
+	@Override
+	public IDrawableWidget addRecipeArrowWidget() {
 		return addEmiTexture(EmiTexture.EMPTY_ARROW);
 	}
 
@@ -98,7 +117,17 @@ public class JemiRecipeExtrasBuilder implements IRecipeExtrasBuilder {
 	}
 
 	@Override
+	public IDrawableWidget addRecipePlusSignWidget() {
+		return addEmiTexture(EmiTexture.PLUS);
+	}
+
+	@Override
 	public IPlaceable<?> addAnimatedRecipeArrow(int ticksPerCycle) {
+		return addAnimatedEmiTexture(EmiTexture.EMPTY_ARROW, EmiTexture.FULL_ARROW, ticksPerCycle * 1000 / 20, true, false, false);
+	}
+
+	@Override
+	public IDrawableWidget addAnimatedRecipeArrowWidget(int ticksPerCycle) {
 		return addAnimatedEmiTexture(EmiTexture.EMPTY_ARROW, EmiTexture.FULL_ARROW, ticksPerCycle * 1000 / 20, true, false, false);
 	}
 
@@ -108,24 +137,29 @@ public class JemiRecipeExtrasBuilder implements IRecipeExtrasBuilder {
 	}
 
 	@Override
+	public IDrawableWidget addAnimatedRecipeFlameWidget(int cookTime) {
+		return addAnimatedEmiTexture(EmiTexture.EMPTY_FLAME, EmiTexture.FULL_FLAME, cookTime * 1000 / 20, false, true, true);
+	}
+
+	@Override
 	public ITextWidget addText(List<FormattedText> text, int maxWidth, int maxHeight) {
 		return new JemiTextWidget(text, maxWidth, maxHeight);
 	}
 
-	private IPlaceable<?> addEmiTexture(EmiTexture texture) {
+	private JemiWidgetBuilder addEmiTexture(EmiTexture texture) {
 		return addEmi(new JemiWidgetBuilder(texture.width, texture.height, (self, holder) -> {
 			holder.addTexture(texture, self.x, self.y);
 		}));
 	}
 
-	private IPlaceable<?> addAnimatedEmiTexture(EmiTexture texture, EmiTexture animated, int time, boolean horizontal, boolean endToStart, boolean fullToEmpty) {
+	private JemiWidgetBuilder addAnimatedEmiTexture(EmiTexture texture, EmiTexture animated, int time, boolean horizontal, boolean endToStart, boolean fullToEmpty) {
 		return addEmi(new JemiWidgetBuilder(texture.width, texture.height, (self, holder) -> {
 			holder.addTexture(texture, self.x, self.y);
 			holder.addAnimatedTexture(animated, self.x, self.y, time, horizontal, endToStart, fullToEmpty);
 		}));
 	}
 
-	private IPlaceable<?> addEmi(JemiWidgetBuilder builder) {
+	private JemiWidgetBuilder addEmi(JemiWidgetBuilder builder) {
 		widgets.add(builder);
 		return builder;
 	}

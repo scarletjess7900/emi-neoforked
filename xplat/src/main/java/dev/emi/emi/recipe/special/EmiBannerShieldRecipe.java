@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -19,12 +18,7 @@ import dev.emi.emi.api.widget.GeneratedSlotWidget;
 import dev.emi.emi.api.widget.SlotWidget;
 
 public class EmiBannerShieldRecipe extends EmiPatternCraftingRecipe {
-	public static final List<Item> BANNERS = List.of(
-		Items.WHITE_BANNER, Items.ORANGE_BANNER, Items.MAGENTA_BANNER, Items.LIGHT_BLUE_BANNER,
-		Items.YELLOW_BANNER, Items.LIME_BANNER, Items.PINK_BANNER, Items.GRAY_BANNER,
-		Items.LIGHT_GRAY_BANNER, Items.CYAN_BANNER, Items.PURPLE_BANNER, Items.BLUE_BANNER,
-		Items.BROWN_BANNER, Items.GREEN_BANNER, Items.RED_BANNER, Items.BLACK_BANNER
-	);
+	public static final List<Item> BANNERS = Items.BANNER.asList();
 	private static final List<EmiStack> EMI_BANNERS = BANNERS.stream().map(i -> EmiStack.of(i)).collect(Collectors.toList());
 	public static final EmiStack SHIELD = EmiStack.of(Items.SHIELD);
 
@@ -61,10 +55,6 @@ public class EmiBannerShieldRecipe extends EmiPatternCraftingRecipe {
 		}
 
 		stack.set(DataComponents.BANNER_PATTERNS, pattern);
-		// Match vanilla ShieldDecorationRecipe, which copies the banner's
-		// base color onto the shield result so the displayed stack matches
-		// the actual crafting output.
-		stack.set(DataComponents.BASE_COLOR, DyeColor.byId(base));
 
 		return EmiStack.of(stack);
 	}

@@ -1,17 +1,22 @@
 # EMI
 EMI is a featureful and accessible item and recipe viewer for Minecraft.
 
-> **Unofficial build for Minecraft 26.1.2.** This tree is not the official EMI.
-> It is the `26.1` branch of [link-fgfgui/emi](https://github.com/link-fgfgui/emi) at commit `63e8aef`
-> (an unofficial port to Minecraft 26.1, itself a fork of [emilyploszaj/emi](https://github.com/emilyploszaj/emi)),
+> **Unofficial build for Minecraft 26.3 (NeoForge).** This tree is not the official EMI.
+> It is the `26.3` branch of [link-fgfgui/emi](https://github.com/link-fgfgui/emi) at commit `2fb0d300`
+> (an unofficial port to Minecraft 26.3, itself a fork of [emilyploszaj/emi](https://github.com/emilyploszaj/emi)),
 > with these changes:
+> - Built against NeoForge 26.3.0.69-beta: `NeoForgeRenderTypes` is no longer an enum there, and the port's own
+>   build crashes on it. This build was run on NeoForge 26.3.0.69 and 26.3.0.70.
 > - `EmiStackConvertible`: the two `@Environment(EnvType.CLIENT)` annotations are removed. On NeoForge they are
->   built as `@OnlyIn`, which NeoForge 26.1 no longer acts on and answers with a warning screen at every start.
+>   built as `@OnlyIn`, which NeoForge 26.x no longer acts on and answers with a warning screen at every start.
 > - `.github/workflows/build.yml`: the two steps that published to the port author's CurseForge project are removed.
+> - Versions of the NeoForge build are `<EMI version>-<Minecraft version>-<version of this fork>`, e.g.
+>   `1.1.24-26.3-beta-0.0.1`; set in `gradle.properties` (`mod_version`, `minecraft_version`, `fork_version`).
 >
 > MIT licensed like the original, see `LICENSE`. Please do not report problems of this build to the original author.
 >
-> Building: JDK 25, `./gradlew build` (or `./gradlew :neoforge:build`); the mod is `neoforge/build/libs/emi-<version>+neoforge.jar`.
+> Building: JDK 25, `./gradlew :neoforge:build`; the mod is `neoforge/build/libs/emi-<version>.jar`.
+> The Fabric part of the tree is as in the port and was not built or tried here.
 
 ![EMI Interface](https://user-images.githubusercontent.com/14813658/224562247-1588064e-39ef-475a-9108-d7a357af6939.png)
 

@@ -22,13 +22,13 @@ public class MinecraftClientMixin {
 	@Shadow
 	public ClientLevel level;
 
-	@Inject(at = @At("RETURN"), method = "reloadResourcePacks(ZLnet/minecraft/client/Minecraft$GameLoadCookie;)Ljava/util/concurrent/CompletableFuture;")
+	@Inject(at = @At("RETURN"), method = "reloadResourcePacks(ZLnet/minecraft/client/GameLoadCookie;)Ljava/util/concurrent/CompletableFuture;")
 	private void reloadResources(boolean force, @Coerce Object loadingContext, CallbackInfoReturnable<CompletableFuture<Void>> info) {
 		CompletableFuture<Void> future = info.getReturnValue();
 		if (future != null) {
 			future.thenRunAsync(() -> {
 				Minecraft client = Minecraft.getInstance();
-				if (client.level != null && EmiPort.getRecipeMap() != null) {
+				if (client.level != null && EmiPort.getRecipes() != null) {
 					EmiReloadManager.reload();
 				}
 			}, Executors.newFixedThreadPool(1));
